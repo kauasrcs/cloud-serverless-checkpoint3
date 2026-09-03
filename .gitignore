@@ -1,0 +1,12 @@
+node_modules/
+*.zip
+.env
+
+# credenciais e chaves de servico nunca entram no repositorio
+credentials.json
+*-key.json
+service-account*.json
+*url*.txt
+
+# gerado a partir do workflow.yaml na hora do deploy, nao versionado
+workflow.asl.json

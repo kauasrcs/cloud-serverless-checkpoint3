@@ -1,0 +1,10 @@
+{
+  "name": "cloud-serverless-checkpoint3",
+  "version": "1.0.0",
+  "description": "Pipeline de funcoes serverless orquestrado por um workflow",
+  "main": "workflow.yaml",
+  "scripts": {
+    "start": "node local.js"
+  },
+  "license": "MIT"
+}

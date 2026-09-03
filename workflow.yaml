@@ -1,0 +1,97 @@
+# Definicao do pipeline no AWS Step Functions (Amazon States Language).
+#
+# Ordem de chamada: validar -> salvar -> notificar.
+# Cada etapa tem retry automatico em falha transitoria. Se uma etapa falhar
+# mesmo apos as tentativas, o pedido e enviado para uma fila de
+# dead-letter (SQS) e a execucao termina como falha, sem perder o pedido.
+# Se o pedido ja tiver sido notificado antes (idempotencia), a etapa de
+# notificacao e pulada para nao notificar o mesmo pedido duas vezes. So
+# "salvo" nao basta para pular: se salvar teve sucesso mas notificar falhou,
+# um novo pedido com o mesmo id ainda passa pela notificacao.
+
+Comment: "Pipeline de pedidos - Checkpoint 3"
+StartAt: Validar
+States:
+
+  Validar:
+    Type: Task
+    Resource: "${ValidarFunctionArn}"
+    Retry:
+      - ErrorEquals:
+          - Lambda.ServiceException
+          - Lambda.AWSLambdaException
+          - Lambda.SdkClientException
+          - Lambda.TooManyRequestsException
+        IntervalSeconds: 2
+        MaxAttempts: 3
+        BackoffRate: 2.0
+    Catch:
+      - ErrorEquals: ["States.ALL"]
+        ResultPath: "$.erro"
+        Next: TratarFalha
+    Next: Salvar
+
+  Salvar:
+    Type: Task
+    Resource: "${SalvarFunctionArn}"
+    Retry:
+      - ErrorEquals:
+          - Lambda.ServiceException
+          - Lambda.AWSLambdaException
+          - Lambda.SdkClientException
+          - Lambda.TooManyRequestsException
+        IntervalSeconds: 2
+        MaxAttempts: 3
+        BackoffRate: 2.0
+    Catch:
+      - ErrorEquals: ["States.ALL"]
+        ResultPath: "$.erro"
+        Next: TratarFalha
+    Next: VerificarIdempotencia
+
+  VerificarIdempotencia:
+    Type: Choice
+    Choices:
+      - Variable: "$.jaProcessado"
+        BooleanEquals: true
+        Next: PedidoJaProcessado
+    Default: Notificar
+
+  PedidoJaProcessado:
+    Type: Succeed
+
+  Notificar:
+    Type: Task
+    Resource: "${NotificarFunctionArn}"
+    Retry:
+      - ErrorEquals:
+          - Lambda.ServiceException
+          - Lambda.AWSLambdaException
+          - Lambda.SdkClientException
+          - Lambda.TooManyRequestsException
+        IntervalSeconds: 2
+        MaxAttempts: 3
+        BackoffRate: 2.0
+    Catch:
+      - ErrorEquals: ["States.ALL"]
+        ResultPath: "$.erro"
+        Next: TratarFalha
+    End: true
+
+  TratarFalha:
+    Type: Task
+    Resource: "arn:aws:states:::sqs:sendMessage"
+    Parameters:
+      QueueUrl: "${DeadLetterQueueUrl}"
+      MessageBody.$: "$"
+    Retry:
+      - ErrorEquals: ["States.ALL"]
+        IntervalSeconds: 1
+        MaxAttempts: 2
+        BackoffRate: 2.0
+    Next: FalhaRegistrada
+
+  FalhaRegistrada:
+    Type: Fail
+    Error: "PipelineFalhou"
+    Cause: "O pedido foi enviado para a fila de dead-letter apos falha no pipeline."
