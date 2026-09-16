@@ -1,5 +1,7 @@
 # Checkpoint 3 - Orquestracao de Funcoes Serverless
 
+[![Deploy](https://github.com/kauasrcs/cloud-serverless-checkpoint3/actions/workflows/deploy.yml/badge.svg)](https://github.com/kauasrcs/cloud-serverless-checkpoint3/actions/workflows/deploy.yml)
+
 Evolucao dos checkpoints anteriores. Em vez de uma unica funcao, este projeto
 tem tres funcoes pequenas (validar, salvar, notificar) chamadas na ordem
 certa por um workflow. O workflow cuida de repetir chamadas que falharem por
@@ -57,6 +59,9 @@ role so pode ser assumida por execucoes vindas deste repositorio, na branch
 deste repositorio. A permissao da role e minima: so
 `lambda:UpdateFunctionCode` (e leitura) nas 4 funcoes deste projeto,
 nada mais.
+
+Execucao registrada com sucesso:
+[github.com/kauasrcs/cloud-serverless-checkpoint3/actions/runs/35157764980](https://github.com/kauasrcs/cloud-serverless-checkpoint3/actions/runs/35157764980)
 
 ## Como rodar localmente
 
