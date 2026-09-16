@@ -31,6 +31,33 @@ A definicao completa esta em [`workflow.yaml`](workflow.yaml). Resumo do fluxo:
 * **Dead-letter queue**: se um passo falhar mesmo apos as tentativas de
   retry, o pedido e enviado para uma fila separada em vez de ser perdido.
 
+## CI/CD (Checkpoint 4 e 5)
+
+As funcoes tambem ganharam logging estruturado e metricas customizadas
+(CloudWatch Embedded Metric Format), detalhado no repositorio do
+[Checkpoint 4](https://github.com/kauasrcs/cloud-serverless-checkpoint4).
+
+O deploy das 4 funcoes e automatizado por GitHub Actions - ver
+[`.github/workflows/deploy.yml`](.github/workflows/deploy.yml). A cada push
+na branch `main`, o workflow roda:
+
+1. **Lint** - `node --check` em cada arquivo de funcao, para pegar erro de
+   sintaxe antes de ir pra nuvem.
+2. **Testes** - `node local.js`, o mesmo teste local descrito abaixo, sem
+   nenhuma credencial de nuvem.
+3. **Build** - empacota cada funcao num `.zip` com o nome `index.js` dentro
+   (o nome que o Lambda espera, configurado em `handler: index.handler`).
+4. **Deploy** - atualiza o codigo das 4 funcoes na AWS
+   (`aws lambda update-function-code`).
+
+A autenticacao na AWS usa **OIDC** (OpenID Connect): o GitHub Actions assume
+uma IAM Role diretamente, sem nenhuma chave de acesso guardada como secret. A
+role so pode ser assumida por execucoes vindas deste repositorio, na branch
+`main` - isso esta escrito na trust policy da role, nao em nenhum arquivo
+deste repositorio. A permissao da role e minima: so
+`lambda:UpdateFunctionCode` (e leitura) nas 4 funcoes deste projeto,
+nada mais.
+
 ## Como rodar localmente
 
 ### Pre-requisitos
@@ -68,3 +95,4 @@ o mesmo pedido de novo (mostrando a idempotencia) e um pedido invalido
 * `functions/notificar.js` - confirma o pedido processado
 * `functions/trigger.js` - recebe a chamada HTTP e inicia o workflow
 * `local.js` - roda o pipeline localmente para teste
+* `.github/workflows/deploy.yml` - pipeline de CI/CD (lint, teste, build, deploy)
