@@ -1,8 +1,13 @@
 name: Deploy
 
+# So dispara manualmente (Actions > Run workflow). O gatilho automatico por
+# push foi desativado porque as mesmas funcoes Lambda deste pipeline agora
+# tambem recebem deploy do Projeto Final (que evoluiu este pipeline
+# adicionando uma etapa de IA) - um push acidental aqui sobrescreveria o
+# codigo mais novo com a versao anterior, sem IA. O historico de execucoes
+# automaticas bem-sucedidas por push, ja registrado no Actions, continua
+# inalterado.
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
 
 # id-token: write e exigido para a autenticacao via OIDC (sem chaves salvas).
